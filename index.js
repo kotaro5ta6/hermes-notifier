@@ -54,10 +54,18 @@ async function fetchProducts(browser, categoryUrl) {
       const button = await page.$('[data-testid="Load more items"]');
       if (!button) break;
 
-      const box = await button.boundingBox();
-      if (!box) break; // 非表示 = もう「もっと見る」は無い
-
-      await button.click();
+      try {
+        const box = await button.boundingBox();
+        if (!box) break; // 非表示 = もう「もっと見る」は無い
+        await button.click();
+      } catch (clickErr) {
+        // ボタンがクリックの瞬間に消えた・入れ替わったなど。
+        // ここで諦めてカテゴリ全体を失敗にせず、今読み込めている分で進める
+        console.warn(
+          `[${categoryUrl}] 「もっと見る」のクリックに失敗したため、ここまでの分で進めます: ${clickErr.message}`
+        );
+        break;
+      }
       await sleep(1500); // 追加読み込みを待つ
     }
 
@@ -190,7 +198,7 @@ async function main() {
         // (そうしないと既存の全商品が「新商品」として通知されてしまうため)
         if (!isFirstRun) {
           for (const product of newProducts) {
-            const fullUrl = `https://www.hermes.com/jp/ja${product.url}`;
+            const fullUrl = encodeURI(`https://www.hermes.com/jp/ja${product.url}`);
             const message = `【新商品】${category.name}\n${product.title}\n${fullUrl}`;
             console.log('通知送信:', message);
             await sendLineBroadcast(message);
