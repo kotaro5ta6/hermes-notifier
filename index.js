@@ -152,7 +152,7 @@ async function main() {
         // (そうしないと既存の全商品が「新商品」として通知されてしまうため)
         if (!isFirstRun) {
           for (const product of newProducts) {
-            const fullUrl = new URL(product.url, 'https://www.hermes.com/jp/ja/').href;
+            const fullUrl = `https://www.hermes.com/jp/ja${product.url}`;
             const message = `【新商品】${category.name}\n${product.title}\n${fullUrl}`;
             console.log('通知送信:', message);
             await sendLineBroadcast(message);
