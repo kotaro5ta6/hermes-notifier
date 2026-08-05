@@ -125,6 +125,18 @@ function saveState(state) {
   fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
 }
 
+// 一時的な失敗（サイトの読み込みタイミングのズレなど）に備えて、
+// 1回失敗しても10秒待ってからもう1回だけ試す
+async function fetchProductsWithRetry(browser, categoryUrl, categoryName) {
+  try {
+    return await fetchProducts(browser, categoryUrl);
+  } catch (err) {
+    console.warn(`[${categoryName}] 1回目の取得に失敗、10秒後に再試行します:`, err.message);
+    await sleep(10000);
+    return await fetchProducts(browser, categoryUrl);
+  }
+}
+
 async function main() {
   const state = loadState();
   let hadError = false;
@@ -137,7 +149,7 @@ async function main() {
   try {
     for (const category of CATEGORIES) {
       try {
-        const products = await fetchProducts(browser, category.url);
+        const products = await fetchProductsWithRetry(browser, category.url, category.name);
         const knownSkus = new Set(state[category.name] || []);
         const isFirstRun = !state[category.name];
         const newProducts = products.filter((p) => !knownSkus.has(p.sku));
