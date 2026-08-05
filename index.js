@@ -14,6 +14,28 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+const DEBUG_DIR = path.join(__dirname, 'debug-output');
+
+// 失敗した瞬間の画面を、あとで確認できるように保存する
+async function saveDebugSnapshot(page, categoryUrl) {
+  try {
+    if (!fs.existsSync(DEBUG_DIR)) {
+      fs.mkdirSync(DEBUG_DIR, { recursive: true });
+    }
+    const slug = categoryUrl.replace(/[^a-zA-Z0-9]/g, '_').slice(-60);
+    const screenshotPath = path.join(DEBUG_DIR, `${slug}.png`);
+    const htmlPath = path.join(DEBUG_DIR, `${slug}.html`);
+
+    await page.screenshot({ path: screenshotPath, fullPage: true });
+    const html = await page.content();
+    fs.writeFileSync(htmlPath, html);
+
+    console.log(`[デバッグ] 失敗時の画面を保存しました: ${screenshotPath}`);
+  } catch (e) {
+    console.warn('[デバッグ] スナップショットの保存に失敗しました:', e.message);
+  }
+}
+
 // ページを開き、「もっと見る」ボタンがある限りクリックして全商品を読み込んでから
 // 埋め込みJSON(hermes-state)を取り出す
 // browser: main()で1回だけ起動したものを毎回使い回す（起動コストを減らすため）
@@ -43,6 +65,8 @@ async function fetchProducts(browser, categoryUrl) {
     });
 
     if (!stateJson) {
+      // 原因調査のため、失敗した瞬間の画面をスクリーンショットとHTMLで保存しておく
+      await saveDebugSnapshot(page, categoryUrl);
       throw new Error(
         '商品データ(hermes-state)が見つかりませんでした。ページ構造が変わった可能性があります。'
       );
