@@ -8,7 +8,9 @@ const CATEGORIES = require('./categories.json');
 const STATE_FILE = path.join(__dirname, 'state.json');
 const LINE_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
 
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+puppeteer.use(StealthPlugin());
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
